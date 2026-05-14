@@ -10,17 +10,6 @@ cmd_create() {
   local network=""
   local tags=""
   local auto_install=0
-  local install_hostname=""
-  local install_username=""
-  local install_password=""
-  local unattended_install=0
-  
-  # Source the installer module
-  if [[ -f "$SRC_DIR/installer.sh" ]]; then
-    source "$SRC_DIR/installer.sh"
-  else
-    log_err $ERR_SCRIPT_NOT_FOUND "Installer module not found at $SRC_DIR/installer.sh"
-  fi
   
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -34,12 +23,13 @@ cmd_create() {
       --network) network="$2"; shift 2 ;;
       --tag) tags="$2"; shift 2 ;;
       --auto-install) auto_install=1; shift ;;
-      --hostname) install_hostname="$2"; shift 2 ;;
-      --username) install_username="$2"; shift 2 ;;
-      --password) install_password="$2"; shift 2 ;;
       *) log_err $ERR_UNKNOWN_OPT "Unknown option to create: $1" ;;
     esac
   done
+
+  if [[ $auto_install -eq 1 ]]; then
+    log_info "Create now only defines VM(s) without starting. Use 'vmswarm install <vm>' for unattended install."
+  fi
   
   if [[ -z "$name" ]]; then
     read -p "Enter VM name: " name
@@ -125,47 +115,11 @@ cmd_create() {
     fi
   fi
 
-  if [[ -n "$iso" && -z "$import_qcow2" ]]; then
-    if [[ $auto_install -eq 1 ]]; then
-      unattended_install=1
-    else
-      if prompt_install_type; then
-        unattended_install=1
-      fi
-    fi
+  local disk_size="$disk"
+  if [[ ! "$disk_size" =~ [KkMmGgTt]$ ]]; then
+    disk_size="${disk_size}G"
   fi
 
-  if [[ $unattended_install -eq 1 ]]; then
-    if [[ -z "$install_hostname" ]]; then
-      read -p "Enter hostname for unattended install (default $name): " install_hostname
-      install_hostname="${install_hostname:-$name}"
-    fi
-    if [[ -z "$install_username" ]]; then
-      read -p "Enter username for unattended install (default user): " install_username
-      install_username="${install_username:-user}"
-    fi
-    if [[ -z "$install_password" ]]; then
-      while true; do
-        local password_first=""
-        local password_second=""
-        read -s -p "Enter password for unattended install: " password_first
-        echo ""
-        read -s -p "Re-type password for unattended install: " password_second
-        echo ""
-        if [[ -z "$password_first" ]]; then
-          echo "Error: Password cannot be empty."
-          continue
-        fi
-        if [[ "$password_first" == "$password_second" ]]; then
-          install_password="$password_first"
-          break
-        fi
-        echo "Error: Passwords do not match. Please try again."
-      done
-    fi
-  fi
-  
-  local cmds=()
   local i
   for (( i=1; i<=NUM_VMS; i++ )); do
     local vm_name="$name"
@@ -178,38 +132,31 @@ cmd_create() {
     fi
     
     local img_path="$VMSWARM_IMAGE_DIR/${vm_name}.qcow2"
-    local v_cmd=""
-    local actual_hostname
-    if [[ -n "$install_hostname" ]]; then
-      actual_hostname="$install_hostname"
-      if [[ $NUM_VMS -gt 1 ]]; then
-        actual_hostname="${actual_hostname}-${i}"
-      fi
-    else
-      actual_hostname="$vm_name"
-    fi
+    local xml_tmp
+    xml_tmp=$(mktemp "/tmp/vmswarm-${vm_name}.XXXXXX.xml")
     
     if [[ -n "$import_qcow2" ]]; then
-      v_cmd="qemu-img create -b $(realpath "$import_qcow2") -F qcow2 -f qcow2 $img_path && virt-install --name $vm_name --ram $ram --vcpus $cpu --disk $img_path,format=qcow2 --import --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
-    elif [[ -n "$iso" && $unattended_install -eq 1 ]]; then
-      local preseed_file
-      local preseed_iso
-      preseed_file=$(get_preseed_path "$vm_name")
-      log_info "Generating preseed file for $vm_name..."
-      generate_preseed "$actual_hostname" "$install_username" "$install_password" "$preseed_file"
-      log_info "Injecting preseed into ISO for unattended installation..."
-      local base_iso_name
-      base_iso_name=$(basename "$iso" .iso)
-      preseed_iso="${VMSWARM_IMAGE_DIR}/${base_iso_name}-${vm_name}-preseed.iso"
-      inject_preseed_into_iso "$iso" "$preseed_file" "$preseed_iso"
-      v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --cdrom $(realpath "$preseed_iso") --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
+      qemu-img create -b "$(realpath "$import_qcow2")" -F qcow2 -f qcow2 "$img_path" >/dev/null
+      virt-install --name "$vm_name" --ram "$ram" --vcpus "$cpu" \
+        --disk "$img_path",format=qcow2 --import --os-variant "$os" \
+        --network "network=$network" --noautoconsole --check disk_size=off \
+        --print-xml > "$xml_tmp" || log_err 105 "Failed to generate VM definition for $vm_name"
     elif [[ -n "$iso" ]]; then
-      v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --cdrom $(realpath "$iso") --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
+      qemu-img create -f qcow2 "$img_path" "$disk_size" >/dev/null
+      virt-install --name "$vm_name" --ram "$ram" --vcpus "$cpu" \
+        --disk "$img_path",format=qcow2 --cdrom "$(realpath "$iso")" --os-variant "$os" \
+        --network "network=$network" --noautoconsole --check disk_size=off \
+        --print-xml > "$xml_tmp" || log_err 105 "Failed to generate VM definition for $vm_name"
     else
-      v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --import --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
+      rm -f "$xml_tmp"
+      log_err $ERR_MISSING_PARAM "Create requires either --iso or --import"
     fi
-    
-    cmds+=("$v_cmd")
+
+    virsh define "$xml_tmp" >/dev/null || {
+      rm -f "$xml_tmp"
+      log_err 105 "Failed to define VM $vm_name"
+    }
+    rm -f "$xml_tmp"
     
     local ts
     ts=$(date +%Y-%m-%d-%H-%M-%S)
@@ -220,8 +167,6 @@ cmd_create() {
       uuid="00000000-0000-0000-0000-000000000000"
     fi
     registry_add "$vm_name" "$uuid" "$ram" "$cpu" "$disk" "$os" "$network" "$tags" "$ts" "$VMSWARM_SSH_USER"
-    log_info "Registered VM $vm_name in registry"
+    log_info "Created and defined VM $vm_name (state: stopped)"
   done
-  
-  execute_cmds "${cmds[@]}"
 }

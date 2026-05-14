@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 cmd_run() {
+  if [[ $# -eq 0 ]]; then
+    log_err $ERR_MISSING_PARAM "Target required for run"
+  fi
+
   local target=$1
   shift
   local script_file=""
@@ -13,11 +17,26 @@ cmd_run() {
     esac
   done
   
-  if [[ -z "$script_file" ]]; then log_err $ERR_MISSING_PARAM "--script is required"; fi
-  if [[ ! -f "$script_file" ]]; then log_err $ERR_SCRIPT_NOT_FOUND "Script not found: $script_file"; fi
-  
   local resolved
   resolved=$(resolve_target "$target")
+
+  # Start VM(s) headlessly when no script is provided.
+  if [[ -z "$script_file" ]]; then
+    local cmds=()
+    for domain in $resolved; do
+      local state
+      state=$(virsh domstate "$domain" 2>/dev/null | tr -d '\r')
+      if [[ "$state" == "running" ]]; then
+        log_info "VM $domain is already running"
+        continue
+      fi
+      cmds+=("virsh start $domain")
+    done
+    execute_cmds "${cmds[@]}"
+    return 0
+  fi
+
+  if [[ ! -f "$script_file" ]]; then log_err $ERR_SCRIPT_NOT_FOUND "Script not found: $script_file"; fi
   
   local cmds=()
   for domain in $resolved; do

@@ -17,19 +17,24 @@ IMPORTANT OPTIONS
   -h           Show this short help message
 
 IMPORTANT COMMANDS
-  create           Provision a new KVM VM (from ISO or qcow2 import; prompts for unattended install on ISO)
+  create           Define a new KVM VM in stopped state (from ISO or qcow2 import)
+  install          Run unattended install for an existing VM and start it (no GUI)
+  run              Start VM(s) headlessly, or execute script with --script
   start            Start VM(s)
   stop             Graceful shutdown of VM(s)
   ps               List VMs with state, RAM, CPUs, tags, IP
 
-CREATE OPTIONS (Unattended Installation)
-  --auto-install   Enable interactive auto-install setup prompts
-  --hostname       VM hostname for unattended install
+INSTALL OPTIONS (Unattended Installation)
+  --iso            Override ISO path for unattended install
+  --hostname       Hostname for unattended install
   --username       Default username for unattended install
   --password       Default password for unattended install
 
 EXAMPLE: Unattended Linux Mint Installation
-  vmswarm create --name mint-vm --iso /path/to/linuxmint.iso --auto-install
+  vmswarm create --name mint-vm --iso /path/to/linuxmint.iso
+  vmswarm run mint-vm
+  vmswarm gui mint-vm
+  vmswarm install mint-vm
 
 For full documentation and all commands/options, see the man page:
   man vmswarm
