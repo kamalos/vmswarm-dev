@@ -79,8 +79,8 @@ cmd_create() {
   if id -u libvirt-qemu >/dev/null 2>&1; then
     if [[ -n "$iso" ]] && ! sudo -u libvirt-qemu test -r "$iso" 2>/dev/null; then
       echo "WARNING: The ISO file '$iso' is not readable by the 'libvirt-qemu' user (common with shared folders)."
-      read -p "Do you want to copy it to $VMSWARM_IMAGE_DIR to fix this? (y/n): " do_copy
-      if [[ "$do_copy" == "y" || "$do_copy" == "Y" ]]; then
+      read -p "Do you want to copy it to $VMSWARM_IMAGE_DIR to fix this? [Y/n]: " do_copy
+      if [[ -z "$do_copy" || "$do_copy" == "y" || "$do_copy" == "Y" ]]; then
         local dest="$VMSWARM_IMAGE_DIR/$(basename "$iso")"
         echo "Copying ISO..."
         cp "$iso" "$dest"
@@ -90,8 +90,8 @@ cmd_create() {
     fi
     if [[ -n "$import_qcow2" ]] && ! sudo -u libvirt-qemu test -r "$import_qcow2" 2>/dev/null; then
       echo "WARNING: The image file '$import_qcow2' is not readable by the 'libvirt-qemu' user."
-      read -p "Do you want to copy it to $VMSWARM_IMAGE_DIR to fix this? (y/n): " do_copy
-      if [[ "$do_copy" == "y" || "$do_copy" == "Y" ]]; then
+      read -p "Do you want to copy it to $VMSWARM_IMAGE_DIR to fix this? [Y/n]: " do_copy
+      if [[ -z "$do_copy" || "$do_copy" == "y" || "$do_copy" == "Y" ]]; then
         local dest="$VMSWARM_IMAGE_DIR/$(basename "$import_qcow2")"
         echo "Copying image..."
         cp "$import_qcow2" "$dest"
@@ -107,6 +107,10 @@ cmd_create() {
     local vm_name="$name"
     if [[ $NUM_VMS -gt 1 ]]; then
       vm_name="${name}-${i}"
+    fi
+    
+    if virsh dominfo "$vm_name" >/dev/null 2>&1; then
+      log_err 116 "Guest name '$vm_name' is already in use by libvirt. Please delete it first or choose another name."
     fi
     
     local img_path="$VMSWARM_IMAGE_DIR/${vm_name}.qcow2"
