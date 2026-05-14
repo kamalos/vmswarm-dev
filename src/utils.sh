@@ -39,7 +39,10 @@ check_prerequisites() {
     echo "Missing required dependencies: ${missing[*]}"
     read -p "Do you want to install the required packages now? (y/n): " install_deps
     if [[ "$install_deps" == "y" || "$install_deps" == "Y" ]]; then
-      sudo apt update && sudo apt install -y qemu-kvm libvirt-daemon-system virtinst virt-manager qemu-utils
+      echo "Installing missing packages (${missing[*]})..."
+      sudo apt update >/dev/null 2>&1
+      sudo apt install -y qemu-kvm libvirt-daemon-system virtinst virt-manager qemu-utils >/dev/null 2>&1
+      echo "Installation complete."
     else
       log_err $ERR_TOOL_MISSING "Required tools (${missing[*]}) are missing."
     fi
