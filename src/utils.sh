@@ -2,43 +2,29 @@
 # HELP TEXT
 show_help() {
   cat << 'EOF'
-NAME
-  vmswarm â€” KVM/libvirt VM orchestration framework
+vmswarm — KVM/libvirt VM orchestration framework
 
-SYNOPSIS
+USAGE
   vmswarm [OPTIONS] COMMAND [ARGS]
 
-DESCRIPTION
-  VMSwarm is a bash-first CLI tool to spin up, manage, and
-  orchestrate multiple KVM virtual machines.
+ESSENTIAL COMMANDS
+  create <name>     Define a new VM (stopped state)
+  install <vm>      Unattended install & start
+  run <vm>          Start VM(s)
+  show <vm>         Open GUI console
+  ps                List all VMs
 
-IMPORTANT OPTIONS
-  -n <count>   Number of VMs for batch create
-  -h           Show this short help message
+OPTIONS
+  -h                This help
+  -n <count>        Batch create count
 
-IMPORTANT COMMANDS
-  create           Define a new KVM VM in stopped state (from ISO or qcow2 import)
-  install          Run unattended install for an existing VM and start it (no GUI)
-  run              Start VM(s) headlessly, or execute script with --script
-  show             Open virt-manager console for VM(s)
-  start            Start VM(s)
-  stop             Graceful shutdown of VM(s)
-  ps               List VMs with state, RAM, CPUs, tags, IP
+EXAMPLES
+  vmswarm create --name mint --iso linux-mint.iso
+  vmswarm install mint --hostname myhost --username user
+  vmswarm ps
+  vmswarm show mint
 
-INSTALL OPTIONS (Unattended Installation)
-  --iso            Override ISO path for unattended install
-  --hostname       Hostname for unattended install
-  --username       Default username for unattended install
-  --password       Default password for unattended install
-
-EXAMPLE: Unattended Linux Mint Installation
-  vmswarm create --name mint-vm --iso /path/to/linuxmint.iso
-  vmswarm run mint-vm
-  vmswarm show mint-vm
-  vmswarm install mint-vm
-
-For full documentation and all commands/options, see the man page:
-  man vmswarm
+See 'man vmswarm' for full documentation.
 EOF
 }
 

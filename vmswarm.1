@@ -36,6 +36,11 @@ Number of VMs for batch create.
 .B create
 Provision a new KVM VM (from ISO or qcow2 import). Prompts for missing parameters.
 .TP
+.B install
+Run unattended Linux installation for a VM with preseed configuration.
+Options: --iso, --hostname, --username, --password.
+
+.TP
 .B start
 Start VM(s).
 .TP
@@ -63,7 +68,7 @@ List VMs with state, RAM, CPUs, tags, IP.
 .B info
 Detailed info for VM(s).
 .TP
-.B gui
+.B show
 Open graphical console for VM(s) using virt-manager.
 .TP
 .B ssh
