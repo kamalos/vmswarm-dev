@@ -193,12 +193,16 @@ cmd_create() {
       v_cmd="qemu-img create -b $(realpath "$import_qcow2") -F qcow2 -f qcow2 $img_path && virt-install --name $vm_name --ram $ram --vcpus $cpu --disk $img_path,format=qcow2 --import --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
     elif [[ -n "$iso" && $unattended_install -eq 1 ]]; then
       local preseed_file
-      local install_tree
+      local preseed_iso
       preseed_file=$(get_preseed_path "$vm_name")
-      install_tree=$(prepare_install_tree "$iso")
       log_info "Generating preseed file for $vm_name..."
       generate_preseed "$actual_hostname" "$install_username" "$install_password" "$preseed_file"
-      v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --location $(realpath "$install_tree") --initrd-inject $(realpath "$preseed_file") --extra-args \"auto=true priority=critical preseed/file=/preseed.cfg debian-installer/locale=en_US.UTF-8 keyboard-configuration/xkb-keymap=us console-setup/ask_detect=false hostname=$actual_hostname\" --os-variant $os --network network=$network --noautoconsole --check disk_size=off && rm -rf $(realpath "$install_tree")"
+      log_info "Injecting preseed into ISO for unattended installation..."
+      local base_iso_name
+      base_iso_name=$(basename "$iso" .iso)
+      preseed_iso="${VMSWARM_IMAGE_DIR}/${base_iso_name}-${vm_name}-preseed.iso"
+      inject_preseed_into_iso "$iso" "$preseed_file" "$preseed_iso"
+      v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --cdrom $(realpath "$preseed_iso") --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
     elif [[ -n "$iso" ]]; then
       v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --cdrom $(realpath "$iso") --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
     else
