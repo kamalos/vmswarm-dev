@@ -80,6 +80,31 @@ cmd_create() {
     log_err $ERR_FILE_NOT_FOUND "Import file not found: $import_qcow2"
   fi
   
+  if id -u libvirt-qemu >/dev/null 2>&1; then
+    if [[ -n "$iso" ]] && ! sudo -u libvirt-qemu test -r "$iso" 2>/dev/null; then
+      echo "WARNING: The ISO file '$iso' is not readable by the 'libvirt-qemu' user (common with shared folders)."
+      read -p "Do you want to copy it to $VMSWARM_IMAGE_DIR to fix this? (y/n): " do_copy
+      if [[ "$do_copy" == "y" || "$do_copy" == "Y" ]]; then
+        local dest="$VMSWARM_IMAGE_DIR/$(basename "$iso")"
+        echo "Copying ISO..."
+        cp "$iso" "$dest"
+        chmod 644 "$dest"
+        iso="$dest"
+      fi
+    fi
+    if [[ -n "$import_qcow2" ]] && ! sudo -u libvirt-qemu test -r "$import_qcow2" 2>/dev/null; then
+      echo "WARNING: The image file '$import_qcow2' is not readable by the 'libvirt-qemu' user."
+      read -p "Do you want to copy it to $VMSWARM_IMAGE_DIR to fix this? (y/n): " do_copy
+      if [[ "$do_copy" == "y" || "$do_copy" == "Y" ]]; then
+        local dest="$VMSWARM_IMAGE_DIR/$(basename "$import_qcow2")"
+        echo "Copying image..."
+        cp "$import_qcow2" "$dest"
+        chmod 644 "$dest"
+        import_qcow2="$dest"
+      fi
+    fi
+  fi
+  
   local cmds=()
   local i
   for (( i=1; i<=NUM_VMS; i++ )); do
