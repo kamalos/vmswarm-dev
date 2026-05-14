@@ -113,20 +113,19 @@ prompt_install_type() {
   echo "============================================"
   echo "Linux Mint Installation Mode"
   echo "============================================"
-  echo "1) Auto-install (unattended with preseed)"
-  echo "2) Manual install (interactive GUI)"
+  echo "Auto-install will run the installer unattended using a preseed file."
   echo ""
   
   local choice
-  read -p "Choose installation mode [1 or 2] (default 2): " choice
-  choice="${choice:-2}"
+  read -p "Do you want to auto install this VM? [y/N]: " choice
+  choice="${choice:-n}"
   
-  case "$choice" in
-    1)
+  case "${choice,,}" in
+    y|yes)
       echo "Auto-install selected."
       return 0  # Return 0 for auto-install
       ;;
-    2|*)
+    *)
       echo "Manual install selected."
       return 1  # Return 1 for manual install
       ;;

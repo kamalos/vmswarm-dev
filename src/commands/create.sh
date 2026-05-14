@@ -13,6 +13,7 @@ cmd_create() {
   local install_hostname=""
   local install_username=""
   local install_password=""
+  local unattended_install=0
   
   # Source the installer module
   if [[ -f "$SRC_DIR/installer.sh" ]]; then
@@ -123,6 +124,37 @@ cmd_create() {
       fi
     fi
   fi
+
+  if [[ -n "$iso" && -z "$import_qcow2" ]]; then
+    if [[ $auto_install -eq 1 ]]; then
+      unattended_install=1
+    else
+      if prompt_install_type; then
+        unattended_install=1
+      fi
+    fi
+  fi
+
+  if [[ $unattended_install -eq 1 ]]; then
+    if [[ -z "$install_hostname" ]]; then
+      read -p "Enter hostname for unattended install (default $name): " install_hostname
+      install_hostname="${install_hostname:-$name}"
+    fi
+    if [[ -z "$install_username" ]]; then
+      read -p "Enter username for unattended install (default user): " install_username
+      install_username="${install_username:-user}"
+    fi
+    if [[ -z "$install_password" ]]; then
+      while true; do
+        read -s -p "Enter password for unattended install: " install_password
+        echo ""
+        if [[ -n "$install_password" ]]; then
+          break
+        fi
+        echo "Error: Password cannot be empty."
+      done
+    fi
+  fi
   
   local cmds=()
   local i
@@ -138,12 +170,26 @@ cmd_create() {
     
     local img_path="$VMSWARM_IMAGE_DIR/${vm_name}.qcow2"
     local v_cmd=""
+    local actual_hostname
+    if [[ -n "$install_hostname" ]]; then
+      actual_hostname="$install_hostname"
+      if [[ $NUM_VMS -gt 1 ]]; then
+        actual_hostname="${actual_hostname}-${i}"
+      fi
+    else
+      actual_hostname="$vm_name"
+    fi
     
     if [[ -n "$import_qcow2" ]]; then
       v_cmd="qemu-img create -b $(realpath "$import_qcow2") -F qcow2 -f qcow2 $img_path && virt-install --name $vm_name --ram $ram --vcpus $cpu --disk $img_path,format=qcow2 --import --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
+    elif [[ -n "$iso" && $unattended_install -eq 1 ]]; then
+      local preseed_file
+      preseed_file=$(get_preseed_path "$vm_name")
+      log_info "Generating preseed file for $vm_name..."
+      generate_preseed "$actual_hostname" "$install_username" "$install_password" "$preseed_file"
+      v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --location $(realpath "$iso") --initrd-inject $(realpath "$preseed_file") --extra-args \"auto=true priority=critical preseed/file=/preseed.cfg debian-installer/locale=en_US.UTF-8 keyboard-configuration/xkb-keymap=us console-setup/ask_detect=false hostname=$actual_hostname\" --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
     elif [[ -n "$iso" ]]; then
       v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --cdrom $(realpath "$iso") --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
-
     else
       v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --import --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
     fi
@@ -163,68 +209,4 @@ cmd_create() {
   done
   
   execute_cmds "${cmds[@]}"
-  
-  # Handle auto-install workflow
-  if [[ $auto_install -eq 1 ]] || [[ -z "$auto_install" ]]; then
-    # Only ask about auto-install if using ISO installation
-    if [[ -n "$iso" ]]; then
-      # If auto-install flag not explicitly set, ask user
-      if [[ $auto_install -ne 1 ]]; then
-        if ! prompt_install_type; then
-          log_info "Manual installation selected. VM is ready for interactive setup."
-          return 0
-        fi
-      fi
-      
-      # Gather credentials if not provided via command line
-      if [[ -z "$install_hostname" ]] || [[ -z "$install_username" ]] || [[ -z "$install_password" ]]; then
-        prompt_install_credentials
-        install_hostname="${INSTALL_HOSTNAME}"
-        install_username="${INSTALL_USERNAME}"
-        install_password="${INSTALL_PASSWORD}"
-      fi
-      
-      # Process auto-install for each VM
-      for (( i=1; i<=NUM_VMS; i++ )); do
-        local vm_name="$name"
-        if [[ $NUM_VMS -gt 1 ]]; then
-          vm_name="${name}-${i}"
-        fi
-        
-        local preseed_file
-        preseed_file=$(get_preseed_path "$vm_name")
-        
-        # Generate preseed file
-        log_info "Generating preseed file for $vm_name..."
-        generate_preseed "$install_hostname${i:-}" "$install_username" "$install_password" "$preseed_file"
-        
-        # Note: For true unattended installation with preseed, you would need to:
-        # 1. Inject preseed file into ISO (if modifying the ISO)
-        # 2. Boot with preseed file on kernel command line
-        # For now, we provide the preseed file and instructions
-        log_info "Preseed file created at: $preseed_file"
-        echo ""
-        echo "============================================"
-        echo "Auto-Install Configuration for $vm_name"
-        echo "============================================"
-        echo "Hostname: $install_hostname${i:-}"
-        echo "Username: $install_username"
-        echo "Preseed file: $preseed_file"
-        echo ""
-        echo "To use preseed for unattended installation:"
-        echo "1. Boot the VM with the ISO"
-        echo "2. At the boot menu, press TAB to edit boot options"
-        echo "3. Add: preseed/file=/cdrom/preseed.cfg"
-        echo ""
-        echo "Or use this command to inject preseed into ISO:"
-        echo "  sudo vmswarm inject-preseed --vm $vm_name --iso $(realpath "$iso")"
-        echo "============================================"
-        echo ""
-      done
-      
-      log_info "Auto-install setup complete. VMs are ready for preseed-based installation."
-    else
-      log_info "Auto-install is only available for ISO-based installations."
-    fi
-  fi
 }

@@ -17,8 +17,7 @@ IMPORTANT OPTIONS
   -h           Show this short help message
 
 IMPORTANT COMMANDS
-  create           Provision a new KVM VM (from ISO or qcow2 import)
-  inject-preseed   Inject preseed file into ISO for unattended install
+  create           Provision a new KVM VM (from ISO or qcow2 import; prompts for unattended install on ISO)
   start            Start VM(s)
   stop             Graceful shutdown of VM(s)
   ps               List VMs with state, RAM, CPUs, tags, IP
@@ -31,7 +30,6 @@ CREATE OPTIONS (Unattended Installation)
 
 EXAMPLE: Unattended Linux Mint Installation
   vmswarm create --name mint-vm --iso /path/to/linuxmint.iso --auto-install
-  vmswarm inject-preseed --vm mint-vm --iso /path/to/linuxmint.iso
 
 For full documentation and all commands/options, see the man page:
   man vmswarm
