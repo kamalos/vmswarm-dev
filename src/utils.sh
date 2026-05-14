@@ -20,6 +20,7 @@ IMPORTANT COMMANDS
   create           Define a new KVM VM in stopped state (from ISO or qcow2 import)
   install          Run unattended install for an existing VM and start it (no GUI)
   run              Start VM(s) headlessly, or execute script with --script
+  show             Open virt-manager console for VM(s)
   start            Start VM(s)
   stop             Graceful shutdown of VM(s)
   ps               List VMs with state, RAM, CPUs, tags, IP
@@ -33,7 +34,7 @@ INSTALL OPTIONS (Unattended Installation)
 EXAMPLE: Unattended Linux Mint Installation
   vmswarm create --name mint-vm --iso /path/to/linuxmint.iso
   vmswarm run mint-vm
-  vmswarm gui mint-vm
+  vmswarm show mint-vm
   vmswarm install mint-vm
 
 For full documentation and all commands/options, see the man page:

@@ -60,16 +60,10 @@ cmd_install() {
     local iso_path="$iso_override"
     if [[ -z "$iso_path" ]]; then
       iso_path=$(virsh dumpxml "$domain" | awk '
-        /<disk / && /device=.cdrom./ { in_cd=1 }
-        in_cd && /<source file=/ {
-          line=$0
-          sub(/^.*file=.\x27/, "", line)
-          sub(/\x27.*$/, "", line)
-          print line
-          exit
-        }
+        /<disk / && /device=["\x27]cdrom["\x27]/ { in_cd=1 }
+        in_cd && /<source file=/ { print; exit }
         /<\/disk>/ { in_cd=0 }
-      ')
+      ' | sed -E "s/.*file=['\"]([^'\"]+)['\"].*/\1/")
     fi
 
     if [[ -z "$iso_path" ]] || [[ ! -f "$iso_path" ]]; then
@@ -93,16 +87,10 @@ cmd_install() {
 
     local cdrom_target
     cdrom_target=$(virsh dumpxml "$domain" | awk '
-      /<disk / && /device=.cdrom./ { in_cd=1 }
-      in_cd && /<target dev=/ {
-        line=$0
-        sub(/^.*dev=.\x27/, "", line)
-        sub(/\x27.*$/, "", line)
-        print line
-        exit
-      }
+      /<disk / && /device=["\x27]cdrom["\x27]/ { in_cd=1 }
+      in_cd && /<target dev=/ { print; exit }
       /<\/disk>/ { in_cd=0 }
-    ')
+    ' | sed -E "s/.*dev=['\"]([^'\"]+)['\"].*/\1/")
     if [[ -z "$cdrom_target" ]]; then
       cdrom_target="hdb"
     fi

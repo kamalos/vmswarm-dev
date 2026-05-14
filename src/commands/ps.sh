@@ -14,13 +14,6 @@ cmd_ps() {
   printf "%-5s %-15s %-10s %-10s %-5s %-20s %-15s\n" "ID" "NAME" "STATE" "RAM(MB)" "CPUs" "TAGS" "IP"
   printf "%-5s %-15s %-10s %-10s %-5s %-20s %-15s\n" "──" "──────────" "───────" "───────" "────" "─────────" "──────────────"
   
-  local virsh_list
-  if [[ $show_all -eq 1 ]]; then
-    virsh_list=$(virsh list --all)
-  else
-    virsh_list=$(virsh list)
-  fi
-  
   tail -n +2 "$REGISTRY_FILE" | while IFS=, read -r id name uuid ram cpus disk os net tags created ssh_user; do
     tags=$(echo "$tags" | tr -d '"')
     
@@ -30,22 +23,24 @@ cmd_ps() {
       fi
     fi
     
-    local state="-"
+    local state="missing"
     local ip="-"
-    
-    if echo "$virsh_list" | grep -q " $name "; then
-      state=$(echo "$virsh_list" | awk -v name="$name" '$2 == name {print $3}')
-      if [[ "$state" == "running" ]]; then
-        # Pipes/filters
-        ip=$(virsh domifaddr "$name" 2>/dev/null | awk '/ipv4/{split($4,a,"/");print a[1]}' || echo "-")
-        if [[ -z "$ip" ]]; then ip="-"; fi
-      fi
-      
-      printf "%-5s %-15s %-10s %-10s %-5s %-20s %-15s\n" "$id" "$name" "$state" "$ram" "$cpus" "$tags" "$ip"
-    else
-      if [[ $show_all -eq 1 ]]; then
-        printf "%-5s %-15s %-10s %-10s %-5s %-20s %-15s\n" "$id" "$name" "missing" "$ram" "$cpus" "$tags" "-"
-      fi
+
+    state=$(virsh domstate "$name" 2>/dev/null | tr -d '\r' || true)
+    if [[ -z "$state" ]]; then
+      state="missing"
     fi
+
+    if [[ "$state" == "running" ]]; then
+      # Pipes/filters
+      ip=$(virsh domifaddr "$name" 2>/dev/null | awk '/ipv4/{split($4,a,"/");print a[1]}' || echo "-")
+      if [[ -z "$ip" ]]; then ip="-"; fi
+    fi
+
+    if [[ "$state" == "missing" && $show_all -ne 1 ]]; then
+      continue
+    fi
+
+    printf "%-5s %-15s %-10s %-10s %-5s %-20s %-15s\n" "$id" "$name" "$state" "$ram" "$cpus" "$tags" "$ip"
   done
 }
