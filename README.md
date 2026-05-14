@@ -15,10 +15,10 @@ VMSwarm is a bash-first CLI tool to spin up, manage, and orchestrate multiple KV
 - Bash environment
 - KVM & libvirt installed (`libvirtd` running)
 - `virsh` CLI tool
+- `virt-manager` (for graphical interface management)
 - GCC and Make (for compiling C extensions)
 
 **Optional but recommended:**
-- `virt-manager` (for a graphical interface to view and manage VMs alongside VMSwarm)
 - `qemu-utils` (for advanced qcow2 image manipulation)
 
 ## Installation
