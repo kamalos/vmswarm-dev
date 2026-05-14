@@ -37,8 +37,8 @@ check_prerequisites() {
 
   if [[ ${#missing[@]} -gt 0 ]]; then
     echo "Missing required dependencies: ${missing[*]}"
-    read -p "Do you want to install the required packages now? (y/n): " install_deps
-    if [[ "$install_deps" == "y" || "$install_deps" == "Y" ]]; then
+    read -p "Do you want to install the required packages now? [Y/n]: " install_deps
+    if [[ -z "$install_deps" || "$install_deps" == "y" || "$install_deps" == "Y" ]]; then
       echo "Installing missing packages (${missing[*]})..."
       sudo apt update >/dev/null 2>&1
       sudo apt install -y qemu-kvm libvirt-daemon-system virtinst virt-manager qemu-utils >/dev/null 2>&1
@@ -53,8 +53,8 @@ check_prerequisites() {
   fi
 
   if ! systemctl is-active --quiet libvirtd; then
-    read -p "libvirtd service is not active. Do you want to start and enable it now? (y/n): " start_libvirtd
-    if [[ "$start_libvirtd" == "y" || "$start_libvirtd" == "Y" ]]; then
+    read -p "libvirtd service is not active. Do you want to start and enable it now? [Y/n]: " start_libvirtd
+    if [[ -z "$start_libvirtd" || "$start_libvirtd" == "y" || "$start_libvirtd" == "Y" ]]; then
       sudo systemctl enable --now libvirtd
     else
       log_err $ERR_LIBVIRTD_NOT_RUNNING "libvirtd is not active"
@@ -62,8 +62,8 @@ check_prerequisites() {
   fi
 
   if [[ $EUID -ne 0 ]] && ! groups | grep -q '\blibvirt\b'; then
-    read -p "User is not in the libvirt group. Do you want to add $USER to the libvirt group? (y/n): " add_group
-    if [[ "$add_group" == "y" || "$add_group" == "Y" ]]; then
+    read -p "User is not in the libvirt group. Do you want to add $USER to the libvirt group? [Y/n]: " add_group
+    if [[ -z "$add_group" || "$add_group" == "y" || "$add_group" == "Y" ]]; then
       sudo usermod -aG libvirt $USER
       echo "Added $USER to libvirt group. Note: You may need to log out and log back in (or run 'newgrp libvirt') for this to take effect."
     else
