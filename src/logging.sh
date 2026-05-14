@@ -38,6 +38,5 @@ log_err() {
   mkdir -p "$LOG_DIR" 2>/dev/null || true
   echo "$log_line" | { tee -a "$LOG_DIR/history.log" 2>/dev/null || true; } >&2
   echo "Exiting with code: $code" >&2
-  show_help >&2
   exit "$code"
 }
