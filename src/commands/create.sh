@@ -133,23 +133,39 @@ cmd_create() {
     
     local img_path="$VMSWARM_IMAGE_DIR/${vm_name}.qcow2"
     local xml_tmp
+    local xml_raw_tmp
     xml_tmp=$(mktemp "/tmp/vmswarm-${vm_name}.XXXXXX.xml")
+    xml_raw_tmp=$(mktemp "/tmp/vmswarm-${vm_name}.XXXXXX.raw")
     
     if [[ -n "$import_qcow2" ]]; then
       qemu-img create -b "$(realpath "$import_qcow2")" -F qcow2 -f qcow2 "$img_path" >/dev/null
       virt-install --name "$vm_name" --ram "$ram" --vcpus "$cpu" \
         --disk "$img_path",format=qcow2 --import --os-variant "$os" \
         --network "network=$network" --noautoconsole --check disk_size=off \
-        --print-xml > "$xml_tmp" || log_err 105 "Failed to generate VM definition for $vm_name"
+        --print-xml > "$xml_raw_tmp" || log_err 105 "Failed to generate VM definition for $vm_name"
     elif [[ -n "$iso" ]]; then
       qemu-img create -f qcow2 "$img_path" "$disk_size" >/dev/null
       virt-install --name "$vm_name" --ram "$ram" --vcpus "$cpu" \
         --disk "$img_path",format=qcow2 --cdrom "$(realpath "$iso")" --os-variant "$os" \
         --network "network=$network" --noautoconsole --check disk_size=off \
-        --print-xml > "$xml_tmp" || log_err 105 "Failed to generate VM definition for $vm_name"
+        --print-xml > "$xml_raw_tmp" || log_err 105 "Failed to generate VM definition for $vm_name"
     else
+      rm -f "$xml_raw_tmp"
       rm -f "$xml_tmp"
       log_err $ERR_MISSING_PARAM "Create requires either --iso or --import"
+    fi
+
+    # Keep only the first domain XML block in case virt-install prints extra content.
+    awk '
+      /<domain[[:space:]][^>]*>/ { if (!inside) inside=1 }
+      inside { print }
+      /<\/domain>/ { if (inside) exit }
+    ' "$xml_raw_tmp" > "$xml_tmp"
+    rm -f "$xml_raw_tmp"
+
+    if ! grep -q '</domain>' "$xml_tmp"; then
+      rm -f "$xml_tmp"
+      log_err 105 "Failed to parse VM definition XML for $vm_name"
     fi
 
     virsh define "$xml_tmp" >/dev/null || {
