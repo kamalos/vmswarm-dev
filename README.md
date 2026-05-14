@@ -17,18 +17,19 @@ VMSwarm is a bash-first CLI tool to spin up, manage, and orchestrate multiple KV
 - `virsh` CLI tool
 - GCC and Make (for compiling C extensions)
 
+**Optional but recommended:**
+- `virt-manager` (for a graphical interface to view and manage VMs alongside VMSwarm)
+- `qemu-utils` (for advanced qcow2 image manipulation)
+
 ## Installation
 
-Clone the repository and run the installation script using `make`.
+Clone the repository and install it directly using `make`. The `install` target will automatically compile the C binaries and install the application along with its manual page.
 
 ```bash
 git clone https://github.com/kamalos/vmswarm-dev.git
 cd vmswarm-v1
 
-# Compile C binaries
-make
-
-# Install binaries, modules, and scripts to system directories (requires root)
+# Compile and install VMSwarm to system directories (requires root)
 sudo make install
 ```
 

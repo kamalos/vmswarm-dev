@@ -24,7 +24,9 @@ install: all
 	chmod +x /usr/local/lib/vmswarm/vmswarm_fork
 	chmod +x /usr/local/lib/vmswarm/vmswarm_thread
 	mkdir -p /etc/vmswarm
-
+	mkdir -p /usr/local/share/man/man1
+	cp vmswarm.1 /usr/local/share/man/man1/
 uninstall:
 	rm -f /usr/local/bin/vmswarm
 	rm -rf /usr/local/lib/vmswarm
+	rm -f /usr/local/share/man/man1/vmswarm.1
