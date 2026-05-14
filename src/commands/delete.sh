@@ -8,6 +8,12 @@ cmd_delete() {
   local resolved
   resolved=$(resolve_target "$target")
   
+  read -p "Are you sure you want to permanently delete these VMs: $resolved? [y/N]: " confirm_del
+  if [[ ! "$confirm_del" =~ ^[Yy]$ ]]; then
+    echo "Deletion cancelled."
+    return 0
+  fi
+  
   local cmds=()
   for domain in $resolved; do
     cmds+=("virsh destroy $domain 2>/dev/null || true; virsh undefine $domain --remove-all-storage 2>/dev/null || true")

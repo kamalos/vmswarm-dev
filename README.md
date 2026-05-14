@@ -70,6 +70,7 @@ vmswarm [OPTIONS] COMMAND [TARGET] [ARGS]
 | `delete` | Undefine and remove VM(s) [requires root]. |
 | `ps` | List VMs with state, RAM, CPUs, tags, IP. |
 | `info` | Detailed info for VM(s). |
+| `gui` | Open graphical console for VM(s) using virt-manager. |
 | `ssh` | SSH into VM(s). |
 | `run` | Execute a local script on VM(s) via SSH. |
 | `clone` | Clone an existing VM. |
