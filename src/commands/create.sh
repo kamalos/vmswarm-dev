@@ -61,10 +61,18 @@ cmd_create() {
     read -p "Select install method [iso/import] (default iso): " method_choice
     case "${method_choice,,}" in
       import)
-        read -e -p "Enter path to qcow2 image: " import_qcow2
+        while true; do
+          read -e -p "Enter path to qcow2 image: " import_qcow2
+          if [[ -f "$import_qcow2" ]]; then break; fi
+          echo "Error: File not found or empty path. Please enter a valid path."
+        done
         ;;
       *)
-        read -e -p "Enter path to ISO file: " iso
+        while true; do
+          read -e -p "Enter path to ISO file: " iso
+          if [[ -f "$iso" ]]; then break; fi
+          echo "Error: File not found or empty path. Please enter a valid path."
+        done
         ;;
     esac
   fi
