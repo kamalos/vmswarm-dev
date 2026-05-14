@@ -29,17 +29,19 @@ EOF
 
 # ENVIRONMENT & PREREQUISITE CHECK
 check_prerequisites() {
-  local missing_deps=0
-  if ! command -v virsh >/dev/null 2>&1 || ! command -v virt-install >/dev/null 2>&1 || ! command -v virt-manager >/dev/null 2>&1; then
-    missing_deps=1
-  fi
+  local missing=()
+  command -v virsh >/dev/null 2>&1 || missing+=("libvirt-clients (virsh)")
+  command -v virt-install >/dev/null 2>&1 || missing+=("virtinst (virt-install)")
+  command -v virt-manager >/dev/null 2>&1 || missing+=("virt-manager")
+  command -v qemu-img >/dev/null 2>&1 || missing+=("qemu-utils (qemu-img)")
 
-  if [[ $missing_deps -eq 1 ]]; then
-    read -p "Required dependencies (qemu-kvm, libvirt-daemon-system, virtinst, virt-manager) are missing. Do you want to install them now? (y/n): " install_deps
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "Missing required dependencies: ${missing[*]}"
+    read -p "Do you want to install the required packages now? (y/n): " install_deps
     if [[ "$install_deps" == "y" || "$install_deps" == "Y" ]]; then
-      sudo apt update && sudo apt install -y qemu-kvm libvirt-daemon-system virtinst virt-manager
+      sudo apt update && sudo apt install -y qemu-kvm libvirt-daemon-system virtinst virt-manager qemu-utils
     else
-      log_err $ERR_TOOL_MISSING "Required tools (virsh/virt-install/virt-manager) are missing."
+      log_err $ERR_TOOL_MISSING "Required tools (${missing[*]}) are missing."
     fi
   fi
 
