@@ -86,17 +86,28 @@ cmd_install() {
     inject_preseed_into_iso "$iso_path" "$preseed_file" "$preseed_iso"
 
     local cdrom_target
-    cdrom_target=$(virsh dumpxml "$domain" | awk '
+    cdrom_target=$(virsh domblklist "$domain" --details 2>/dev/null | awk '$2 == "cdrom" { print $3; exit }')
+    if [[ -z "$cdrom_target" ]]; then
+      cdrom_target=$(virsh dumpxml "$domain" | awk '
       /<disk / && /device=["\x27]cdrom["\x27]/ { in_cd=1 }
       in_cd && /<target dev=/ { print; exit }
       /<\/disk>/ { in_cd=0 }
-    ' | sed -E "s/.*dev=['\"]([^'\"]+)['\"].*/\1/")
+      ' | sed -E "s/.*dev=['\"]([^'\"]+)['\"].*/\1/")
+    fi
     if [[ -z "$cdrom_target" ]]; then
       cdrom_target="hdb"
     fi
 
-    virsh change-media "$domain" "$cdrom_target" --config --insert "$preseed_iso" >/dev/null 2>&1 || \
-      virsh attach-disk "$domain" "$preseed_iso" "$cdrom_target" --type cdrom --mode readonly --config >/dev/null
+    if ! virsh change-media "$domain" "$cdrom_target" --config --insert "$preseed_iso" >/dev/null 2>&1; then
+      # Some domain definitions require an explicit eject before insert.
+      virsh change-media "$domain" "$cdrom_target" --config --eject >/dev/null 2>&1 || true
+      if ! virsh change-media "$domain" "$cdrom_target" --config --insert "$preseed_iso" >/dev/null 2>&1; then
+        # Final fallback: replace the cdrom device on the same target.
+        virsh detach-disk "$domain" "$cdrom_target" --config >/dev/null 2>&1 || true
+        virsh attach-disk "$domain" "$preseed_iso" "$cdrom_target" --type cdrom --mode readonly --config >/dev/null 2>&1 || \
+          log_err 116 "Failed to set unattended install ISO on $domain ($cdrom_target)"
+      fi
+    fi
 
     virsh start "$domain" >/dev/null || log_err 116 "Failed to start VM '$domain' for unattended install"
     log_info "Started unattended installation for $domain (no GUI)."
