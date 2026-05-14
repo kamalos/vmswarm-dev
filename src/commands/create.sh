@@ -53,8 +53,24 @@ cmd_create() {
   fi
   
   if [[ -z "$network" ]]; then
-    read -p "Enter Network (default $VMSWARM_DEFAULT_NETWORK): " input_net
+    read -p "Enter Network [e.g. default (NAT), bridge0] (default $VMSWARM_DEFAULT_NETWORK): " input_net
     network="${input_net:-$VMSWARM_DEFAULT_NETWORK}"
+  fi
+  
+  local pxe=""
+  if [[ -z "$iso" && -z "$import_qcow2" ]]; then
+    read -p "Select install method [iso/import/pxe/none] (default none): " method_choice
+    case "${method_choice,,}" in
+      iso)
+        read -p "Enter path to ISO file: " iso
+        ;;
+      import)
+        read -p "Enter path to qcow2 image: " import_qcow2
+        ;;
+      pxe)
+        pxe="1"
+        ;;
+    esac
   fi
   
   if [[ -n "$iso" ]] && [[ ! -f "$iso" ]]; then
@@ -79,8 +95,10 @@ cmd_create() {
       v_cmd="qemu-img create -b $(realpath "$import_qcow2") -F qcow2 -f qcow2 $img_path && virt-install --name $vm_name --ram $ram --vcpus $cpu --disk $img_path,format=qcow2 --import --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
     elif [[ -n "$iso" ]]; then
       v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --cdrom $(realpath "$iso") --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
+    elif [[ -n "$pxe" ]]; then
+      v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --pxe --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
     else
-      v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --boot hd --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
+      v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --import --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
     fi
     
     cmds+=("$v_cmd")
