@@ -174,6 +174,28 @@ prompt_install_credentials() {
   export INSTALL_PASSWORD="$password1"
 }
 
+# Prepare an extracted install tree from an ISO for virt-install --location
+# Usage: prepare_install_tree <iso_path>
+prepare_install_tree() {
+  local iso_path="$1"
+  local work_dir="/tmp/vmswarm_install_tree_$$"
+
+  if ! command -v xorriso >/dev/null 2>&1; then
+    log_info "Installing xorriso for ISO extraction..." >/dev/null 2>&1
+    sudo apt update >/dev/null 2>&1
+    sudo apt install -y xorriso >/dev/null 2>&1
+  fi
+
+  mkdir -p "$work_dir"
+  log_info "Extracting install tree from ISO..." >/dev/null 2>&1
+  if ! xorriso -osirrox on -indev "$iso_path" -extract / "$work_dir" >/dev/null 2>&1; then
+    rm -rf "$work_dir"
+    log_err 105 "Failed to extract install tree from ISO: $iso_path"
+  fi
+
+  echo "$work_dir"
+}
+
 # Modify ISO to include preseed file for unattended installation
 # Usage: inject_preseed_into_iso <iso_path> <preseed_file> <output_iso>
 inject_preseed_into_iso() {

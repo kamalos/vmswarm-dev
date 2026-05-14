@@ -146,12 +146,21 @@ cmd_create() {
     fi
     if [[ -z "$install_password" ]]; then
       while true; do
-        read -s -p "Enter password for unattended install: " install_password
+        local password_first=""
+        local password_second=""
+        read -s -p "Enter password for unattended install: " password_first
         echo ""
-        if [[ -n "$install_password" ]]; then
+        read -s -p "Re-type password for unattended install: " password_second
+        echo ""
+        if [[ -z "$password_first" ]]; then
+          echo "Error: Password cannot be empty."
+          continue
+        fi
+        if [[ "$password_first" == "$password_second" ]]; then
+          install_password="$password_first"
           break
         fi
-        echo "Error: Password cannot be empty."
+        echo "Error: Passwords do not match. Please try again."
       done
     fi
   fi
@@ -184,10 +193,12 @@ cmd_create() {
       v_cmd="qemu-img create -b $(realpath "$import_qcow2") -F qcow2 -f qcow2 $img_path && virt-install --name $vm_name --ram $ram --vcpus $cpu --disk $img_path,format=qcow2 --import --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
     elif [[ -n "$iso" && $unattended_install -eq 1 ]]; then
       local preseed_file
+      local install_tree
       preseed_file=$(get_preseed_path "$vm_name")
+      install_tree=$(prepare_install_tree "$iso")
       log_info "Generating preseed file for $vm_name..."
       generate_preseed "$actual_hostname" "$install_username" "$install_password" "$preseed_file"
-      v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --location $(realpath "$iso") --initrd-inject $(realpath "$preseed_file") --extra-args \"auto=true priority=critical preseed/file=/preseed.cfg debian-installer/locale=en_US.UTF-8 keyboard-configuration/xkb-keymap=us console-setup/ask_detect=false hostname=$actual_hostname\" --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
+      v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --location $(realpath "$install_tree") --initrd-inject $(realpath "$preseed_file") --extra-args \"auto=true priority=critical preseed/file=/preseed.cfg debian-installer/locale=en_US.UTF-8 keyboard-configuration/xkb-keymap=us console-setup/ask_detect=false hostname=$actual_hostname\" --os-variant $os --network network=$network --noautoconsole --check disk_size=off && rm -rf $(realpath "$install_tree")"
     elif [[ -n "$iso" ]]; then
       v_cmd="virt-install --name $vm_name --ram $ram --vcpus $cpu --disk size=$disk,format=qcow2 --cdrom $(realpath "$iso") --os-variant $os --network network=$network --noautoconsole --check disk_size=off"
     else
