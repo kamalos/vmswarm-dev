@@ -61,10 +61,10 @@ cmd_create() {
     read -p "Select install method [iso/import] (default iso): " method_choice
     case "${method_choice,,}" in
       import)
-        read -p "Enter path to qcow2 image: " import_qcow2
+        read -e -p "Enter path to qcow2 image: " import_qcow2
         ;;
       *)
-        read -p "Enter path to ISO file: " iso
+        read -e -p "Enter path to ISO file: " iso
         ;;
     esac
   fi
