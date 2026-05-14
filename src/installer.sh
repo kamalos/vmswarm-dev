@@ -230,16 +230,23 @@ LABEL autoinstall
     boot=casper automatic-ubiquity noprompt \
     vga=788 quiet splash --
 BOOTCFG
-    # Set auto-install as default
-    sed -i 's/^DEFAULT .*/DEFAULT autoinstall/' "$work_dir/isolinux/isolinux.cfg" || true
+    # Set auto-install as default. Remove any existing DEFAULT line and add ours at the top.
+    sed -i '/^DEFAULT /d' "$work_dir/isolinux/isolinux.cfg" || true
+    {
+      echo "DEFAULT autoinstall"
+      echo "TIMEOUT 0"
+      cat "$work_dir/isolinux/isolinux.cfg"
+    } > "$work_dir/isolinux/isolinux.cfg.tmp"
+    mv "$work_dir/isolinux/isolinux.cfg.tmp" "$work_dir/isolinux/isolinux.cfg"
   fi
   
   # Update grub configuration if it exists (UEFI boot)
   if [[ -f "$work_dir/boot/grub/grub.cfg" ]]; then
-    # Prepend a default auto-install entry so GRUB boots it first.
+    # Ensure GRUB defaults to auto-install entry by removing old defaults and prepending new one.
     local grub_cfg_tmp="${work_dir}/boot/grub/grub.cfg.vmswarm"
     {
       echo 'set default=0'
+      echo 'set timeout=0'
       echo
       cat << 'GRUBCFG'
 menuentry "Auto Install (Unattended)" {
@@ -248,7 +255,7 @@ menuentry "Auto Install (Unattended)" {
 }
 GRUBCFG
       echo
-      cat "$work_dir/boot/grub/grub.cfg"
+      grep -v '^set default=' "$work_dir/boot/grub/grub.cfg" | grep -v '^set timeout='
     } > "$grub_cfg_tmp"
     mv "$grub_cfg_tmp" "$work_dir/boot/grub/grub.cfg"
   fi
