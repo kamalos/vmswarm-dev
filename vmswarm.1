@@ -1,0 +1,126 @@
+.TH VMSWARM 1 "May 2026" "1.0" "VMSwarm Manual"
+.SH NAME
+vmswarm \- KVM/libvirt VM orchestration framework
+.SH SYNOPSIS
+.B vmswarm
+[\fIOPTIONS\fR] \fICOMMAND\fR [\fIARGS\fR]
+.SH DESCRIPTION
+VMSwarm is a bash-first CLI tool to spin up, manage, and orchestrate multiple KVM virtual machines using libvirt/virsh. Supports parallel execution via subshell, fork (C), or threads (C).
+.SH OPTIONS
+.TP
+.BR \-h
+Show short help message.
+.TP
+.BR \-f
+Fork-based parallel execution (C binary).
+.TP
+.BR \-t
+Thread-based parallel execution (C binary).
+.TP
+.BR \-s
+Subshell execution.
+.TP
+.BR \-l " " \fIdir\fR
+Set log directory (default: /var/log/vmswarm).
+.TP
+.BR \-r
+Restore config defaults (root only).
+.TP
+.BR \-v
+Verbose output.
+.TP
+.BR \-n " " \fIcount\fR
+Number of VMs for batch create.
+.SH COMMANDS
+.TP
+.B create
+Provision a new KVM VM (from ISO or qcow2 import). Prompts for missing parameters.
+.TP
+.B start
+Start VM(s).
+.TP
+.B stop
+Graceful shutdown of VM(s).
+.TP
+.B kill
+Force-off VM(s).
+.TP
+.B pause
+Suspend VM(s) in memory.
+.TP
+.B resume
+Resume paused VM(s).
+.TP
+.B suspend
+Save VM state to disk.
+.TP
+.B delete
+Undefine and remove VM(s) [requires root].
+.TP
+.B ps
+List VMs with state, RAM, CPUs, tags, IP.
+.TP
+.B info
+Detailed info for VM(s).
+.TP
+.B ssh
+SSH into VM(s).
+.TP
+.B run
+Execute a local script on VM(s) via SSH.
+.TP
+.B clone
+Clone an existing VM.
+.TP
+.B tag
+Add/remove/list tags.
+.TP
+.B snap
+Manage snapshots (take/list/restore/delete).
+.TP
+.B net
+Manage libvirt networks (list/create/delete).
+.TP
+.B export
+Export VM to portable archive.
+.TP
+.B import
+Import VM from archive.
+.TP
+.B logs
+Read and filter the vmswarm log file.
+.SH TARGET SYNTAX
+.TP
+.B <name>
+By VM name: worker-1
+.TP
+.B <id>
+By numeric ID: 3
+.TP
+.B <id1>-<id2>
+ID range: 1-5
+.TP
+.B id:<n,m,k>
+Explicit IDs: id:1,3,7
+.TP
+.B tag:<name>
+By tag: tag:dev
+.TP
+.B all
+All registered VMs
+.SH EXAMPLES
+.B vmswarm -s -n 3 create --name node --tag cluster --import base.qcow2
+.PP
+.B vmswarm ps --tag cluster
+.PP
+.B vmswarm -f run tag:cluster --script deploy.sh
+.PP
+.B vmswarm -t start 1-10
+.PP
+.B vmswarm snap take all --name pre-update
+.PP
+.B vmswarm export worker-1 --out /backups
+.PP
+.B vmswarm logs --tail 50 --grep ERROR
+.SH ERROR CODES
+100 Unknown option, 101 Missing parameter, 102 VM not found, 103 Tool missing, 104 Permission denied, 105 File not found, 106 SSH failed, 107 Script not found, 108 Tag not found, 109 Snapshot not found, 110 Binary missing, 111 KVM module not loaded, 112 libvirtd not running, 113 Network exists, 114 Clone source missing, 115 Archive corrupted

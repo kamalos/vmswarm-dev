@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# VMSwarm — VM Orchestration Framework (Modular Entrypoint)
+
+# Locate source directory
+if [[ -d "/usr/local/lib/vmswarm/src" ]]; then
+  SRC_DIR="/usr/local/lib/vmswarm/src"
+else
+  SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/src"
+fi
+
+# Load core modules
+if [[ -f "$SRC_DIR/constants.sh" ]]; then
+  source "$SRC_DIR/constants.sh"
+  source "$SRC_DIR/logging.sh"
+  source "$SRC_DIR/utils.sh"
+  source "$SRC_DIR/config.sh"
+  source "$SRC_DIR/registry.sh"
+  source "$SRC_DIR/execution.sh"
+else
+  echo "Error: Could not find VMSwarm source modules at $SRC_DIR" >&2
+  exit 110
+fi
+
+# MAIN ENTRYPOINT
+main() {
+  local OPT_LOG_DIR=""
+  
+  while getopts "hftsl:rn:v" opt; do
+    case "$opt" in
+      h) show_help; exit 0 ;;
+      f) EXEC_MODE="fork" ;;
+      t) EXEC_MODE="thread" ;;
+      s) EXEC_MODE="subshell" ;;
+      l) OPT_LOG_DIR="$OPTARG" ;;
+      n) NUM_VMS="$OPTARG" ;;
+      v) VERBOSE=1 ;;
+      r) 
+        if [[ -f "$SRC_DIR/commands/defaults.sh" ]]; then
+          source "$SRC_DIR/commands/defaults.sh"
+          restore_defaults
+        fi
+        exit 0 
+        ;;
+      *) log_err $ERR_UNKNOWN_OPT "Unknown option: -$OPTARG" ;;
+    esac
+  done
+  shift $((OPTIND -1))
+  
+  if [[ $# -eq 0 ]]; then
+    show_help
+    exit $ERR_MISSING_PARAM
+  fi
+  
+  local cmd=$1
+  shift
+  
+  check_prerequisites
+  load_config
+  
+  # Lazy load the command implementation
+  local cmd_file="$SRC_DIR/commands/${cmd}.sh"
+  if [[ -f "$cmd_file" ]]; then
+    source "$cmd_file"
+    "cmd_${cmd}" "$@"
+  else
+    case "$cmd" in
+      start|stop|kill|pause|resume|suspend)
+        run_parallel "$cmd" "$@"
+        ;;
+      *)
+        log_err $ERR_UNKNOWN_OPT "Unknown command: $cmd"
+        ;;
+    esac
+  fi
+}
+
+main "$@"
