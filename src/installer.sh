@@ -20,6 +20,26 @@ generate_preseed() {
   local password_hash
   password_hash=$(echo "$password" | mkpasswd -s -m sha-512)
   
+  # Detect host's machine keyboard layout (defaulting to us)
+  local layout="us"
+  if [[ -f /etc/default/keyboard ]]; then
+    local xkb_layout
+    xkb_layout=$(grep -E "^XKBLAYOUT=" /etc/default/keyboard | cut -d= -f2 | tr -d '"'\'' ')
+    if [[ -n "$xkb_layout" ]]; then
+      # Handle comma-separated layouts (e.g. "fr,us")
+      layout="${xkb_layout%%,*}"
+    fi
+  elif command -v localectl >/dev/null 2>&1; then
+    local xkb_layout
+    xkb_layout=$(localectl status 2>/dev/null | awk -F: '/X11 Layout/ {print $2}' | xargs)
+    if [[ -n "$xkb_layout" ]]; then
+      layout="${xkb_layout%%,*}"
+    fi
+  fi
+  if [[ -z "$layout" ]]; then
+    layout="us"
+  fi
+  
   # Create preseed file compatible with both Debian Installer and Ubiquity
   cat > "$output_file" << EOF
 # Unattended Linux Mint Installation Preseed File
@@ -30,7 +50,8 @@ generate_preseed() {
 d-i debian-installer/language string en
 d-i debian-installer/country string US
 d-i debian-installer/locale string en_US.UTF-8
-d-i keyboard-configuration/xkb-keymap select us
+d-i keyboard-configuration/xkb-keymap select $layout
+d-i keyboard-configuration/layoutcode string $layout
 
 # Network configuration
 d-i netcfg/choose_interface select auto

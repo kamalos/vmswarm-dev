@@ -2,7 +2,7 @@
 # HELP TEXT
 show_help() {
   cat << 'EOF'
-vmswarm — KVM/libvirt VM orchestration framework
+vmswarm â€” KVM/libvirt VM orchestration framework
 
 USAGE
   vmswarm [OPTIONS] COMMAND [ARGS]
@@ -12,6 +12,7 @@ ESSENTIAL COMMANDS
   install <vm>      Unattended install & start
   run <vm>          Start VM(s)
   show <vm>         Open GUI console
+  eject <vm>        Eject CD-ROM (unplug ISO)
   ps                List all VMs
 
 OPTIONS
