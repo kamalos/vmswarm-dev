@@ -217,6 +217,26 @@ inject_preseed_into_iso() {
   # This handles both isolinux (BIOS) and grub (UEFI) boot configurations
   log_info "Modifying boot configuration for unattended installation..."
   
+  # Dynamically find the kernel and initrd on the ISO
+  local actual_linux=""
+  local actual_initrd=""
+  for search_dir in casper live install.amd install; do
+    if [[ -d "$work_dir/$search_dir" ]]; then
+      local k_file
+      local i_file
+      k_file=$(find "$work_dir/$search_dir" -maxdepth 1 \( -name "vmlinuz*" -o -name "linux*" \) -printf "%f\n" | head -n 1)
+      i_file=$(find "$work_dir/$search_dir" -maxdepth 1 -name "initrd*" -printf "%f\n" | head -n 1)
+      if [[ -n "$k_file" && -n "$i_file" ]]; then
+        actual_linux="/$search_dir/$k_file"
+        actual_initrd="/$search_dir/$i_file"
+        break
+      fi
+    fi
+  done
+  
+  if [[ -z "$actual_linux" ]]; then actual_linux="/casper/vmlinuz"; fi
+  if [[ -z "$actual_initrd" ]]; then actual_initrd="/casper/initrd"; fi
+
   # Update isolinux configuration if it exists (BIOS boot)
   if [[ -f "$work_dir/isolinux/isolinux.cfg" ]]; then
     # Add auto-install entry that uses preseed
@@ -224,9 +244,9 @@ inject_preseed_into_iso() {
 
 LABEL autoinstall
   MENU LABEL Auto Install (Unattended)
-  KERNEL /casper/vmlinuz
+  KERNEL ${actual_linux}
   APPEND file=/cdrom/preseed.cfg preseed/file=/preseed.cfg auto=true \
-    initrd=/casper/initrd \
+    initrd=${actual_initrd} \
     boot=casper automatic-ubiquity noprompt \
     vga=788 quiet splash --
 BOOTCFG
@@ -242,14 +262,6 @@ BOOTCFG
   
   # Update grub configuration if it exists (UEFI boot)
   if [[ -f "$work_dir/boot/grub/grub.cfg" ]]; then
-    # Extract actual paths for vmlinuz and initrd from existing grub config
-    local orig_linux
-    local orig_initrd
-    orig_linux=$(grep -m 1 -E '^[[:space:]]*linux' "$work_dir/boot/grub/grub.cfg" | awk '{print $2}')
-    orig_initrd=$(grep -m 1 -E '^[[:space:]]*initrd' "$work_dir/boot/grub/grub.cfg" | awk '{print $2}')
-    if [[ -z "$orig_linux" ]]; then orig_linux="/casper/vmlinuz"; fi
-    if [[ -z "$orig_initrd" ]]; then orig_initrd="/casper/initrd"; fi
-
     # Strip existing default and timeout
     sed -i -e 's/^[[:space:]]*set default=.*//g' -e 's/^[[:space:]]*set timeout=.*//g' "$work_dir/boot/grub/grub.cfg"
 
@@ -261,8 +273,8 @@ BOOTCFG
       echo
       cat << GRUBCFG
 menuentry "Auto Install (Unattended)" {
-  linux ${orig_linux} file=/cdrom/preseed.cfg preseed/file=/preseed.cfg auto=true automatic-ubiquity noprompt boot=casper quiet splash vga=788
-  initrd ${orig_initrd}
+  linux ${actual_linux} file=/cdrom/preseed.cfg preseed/file=/preseed.cfg auto=true automatic-ubiquity noprompt boot=casper quiet splash vga=788
+  initrd ${actual_initrd}
 }
 GRUBCFG
       echo
