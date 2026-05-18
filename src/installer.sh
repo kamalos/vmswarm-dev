@@ -2,25 +2,8 @@
 # Unattended Installation Module for VMSwarm
 # Provides functions for automatic Linux Mint installation via preseed files
 
-# Generate preseed file for unattended Debian/Linux Mint installation
-# Usage: generate_preseed <hostname> <username> <password> <output_file>
-generate_preseed() {
-  local hostname="$1"
-  local username="$2"
-  local password="$3"
-  local output_file="$4"
-  
-  # Hash the password using mkpasswd (install if needed)
-  if ! command -v mkpasswd >/dev/null 2>&1; then
-    log_info "Installing whois package for password hashing..."
-    sudo apt update >/dev/null 2>&1
-    sudo apt install -y whois >/dev/null 2>&1
-  fi
-  
-  local password_hash
-  password_hash=$(echo "$password" | mkpasswd -s -m sha-512)
-  
-  # Detect host's machine keyboard layout (defaulting to us)
+# Detect host's machine keyboard layout (defaulting to us)
+detect_host_layout() {
   local layout="us"
   if [[ -f /etc/default/keyboard ]]; then
     local xkb_layout
@@ -39,6 +22,29 @@ generate_preseed() {
   if [[ -z "$layout" ]]; then
     layout="us"
   fi
+  echo "$layout"
+}
+
+# Generate preseed file for unattended Debian/Linux Mint installation
+# Usage: generate_preseed <hostname> <username> <password> <output_file>
+generate_preseed() {
+  local hostname="$1"
+  local username="$2"
+  local password="$3"
+  local output_file="$4"
+  
+  # Hash the password using mkpasswd (install if needed)
+  if ! command -v mkpasswd >/dev/null 2>&1; then
+    log_info "Installing whois package for password hashing..."
+    sudo apt update >/dev/null 2>&1
+    sudo apt install -y whois >/dev/null 2>&1
+  fi
+  
+  local password_hash
+  password_hash=$(echo "$password" | mkpasswd -s -m sha-512)
+  
+  local layout
+  layout=$(detect_host_layout)
   
   # Create preseed file compatible with both Debian Installer and Ubiquity
   cat > "$output_file" << EOF
@@ -238,6 +244,10 @@ inject_preseed_into_iso() {
   # This handles both isolinux (BIOS) and grub (UEFI) boot configurations
   log_info "Modifying boot configuration for unattended installation..."
   
+  # Detect host's machine keyboard layout
+  local layout
+  layout=$(detect_host_layout)
+
   # Dynamically find the kernel and initrd on the ISO
   local actual_linux=""
   local actual_initrd=""
@@ -267,7 +277,8 @@ LABEL autoinstall
   MENU LABEL Auto Install (Unattended)
   KERNEL ${actual_linux}
   APPEND file=/cdrom/preseed.cfg preseed/file=/preseed.cfg auto=true \
-    initrd=${actual_initrd} \
+    console-setup/ask_detect=false keyboard-configuration/layoutcode=${layout} \
+    locale=en_US.UTF-8 initrd=${actual_initrd} \
     boot=casper automatic-ubiquity noprompt \
     vga=788 quiet splash --
 BOOTCFG
@@ -294,7 +305,7 @@ BOOTCFG
       echo
       cat << GRUBCFG
 menuentry "Auto Install (Unattended)" {
-  linux ${actual_linux} file=/cdrom/preseed.cfg preseed/file=/preseed.cfg auto=true automatic-ubiquity noprompt boot=casper quiet splash vga=788
+  linux ${actual_linux} file=/cdrom/preseed.cfg preseed/file=/preseed.cfg auto=true console-setup/ask_detect=false keyboard-configuration/layoutcode=${layout} locale=en_US.UTF-8 automatic-ubiquity noprompt boot=casper quiet splash vga=788
   initrd ${actual_initrd}
 }
 GRUBCFG
