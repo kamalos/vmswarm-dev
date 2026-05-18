@@ -230,11 +230,11 @@ LABEL autoinstall
     boot=casper automatic-ubiquity noprompt \
     vga=788 quiet splash --
 BOOTCFG
-    # Set auto-install as default. Remove any existing DEFAULT line and add ours at the top.
-    sed -i '/^DEFAULT /d' "$work_dir/isolinux/isolinux.cfg" || true
+    # Set auto-install as default. Remove any existing DEFAULT/TIMEOUT line and add ours at the top.
+    sed -i -e '/^[[:space:]]*[Dd][Ee][Ff][Aa][Uu][Ll][Tt][[:space:]]/d' -e '/^[[:space:]]*[Tt][Ii][Mm][Ee][Oo][Uu][Tt][[:space:]]/d' "$work_dir/isolinux/isolinux.cfg" || true
     {
       echo "DEFAULT autoinstall"
-      echo "TIMEOUT 0"
+      echo "TIMEOUT 1"
       cat "$work_dir/isolinux/isolinux.cfg"
     } > "$work_dir/isolinux/isolinux.cfg.tmp"
     mv "$work_dir/isolinux/isolinux.cfg.tmp" "$work_dir/isolinux/isolinux.cfg"
@@ -242,20 +242,31 @@ BOOTCFG
   
   # Update grub configuration if it exists (UEFI boot)
   if [[ -f "$work_dir/boot/grub/grub.cfg" ]]; then
-    # Ensure GRUB defaults to auto-install entry by removing old defaults and prepending new one.
+    # Extract actual paths for vmlinuz and initrd from existing grub config
+    local orig_linux
+    local orig_initrd
+    orig_linux=$(grep -m 1 -E '^[[:space:]]*linux' "$work_dir/boot/grub/grub.cfg" | awk '{print $2}')
+    orig_initrd=$(grep -m 1 -E '^[[:space:]]*initrd' "$work_dir/boot/grub/grub.cfg" | awk '{print $2}')
+    if [[ -z "$orig_linux" ]]; then orig_linux="/casper/vmlinuz"; fi
+    if [[ -z "$orig_initrd" ]]; then orig_initrd="/casper/initrd"; fi
+
+    # Strip existing default and timeout
+    sed -i -e 's/^[[:space:]]*set default=.*//g' -e 's/^[[:space:]]*set timeout=.*//g' "$work_dir/boot/grub/grub.cfg"
+
+    # Ensure GRUB defaults to auto-install entry by prepending new default.
     local grub_cfg_tmp="${work_dir}/boot/grub/grub.cfg.vmswarm"
     {
-      echo 'set default=0'
-      echo 'set timeout=0'
+      echo 'set default="Auto Install (Unattended)"'
+      echo 'set timeout=1'
       echo
-      cat << 'GRUBCFG'
+      cat << GRUBCFG
 menuentry "Auto Install (Unattended)" {
-  linux /casper/vmlinuz file=/cdrom/preseed.cfg preseed/file=/preseed.cfg auto=true automatic-ubiquity noprompt boot=casper quiet splash vga=788
-  initrd /casper/initrd
+  linux ${orig_linux} file=/cdrom/preseed.cfg preseed/file=/preseed.cfg auto=true automatic-ubiquity noprompt boot=casper quiet splash vga=788
+  initrd ${orig_initrd}
 }
 GRUBCFG
       echo
-      grep -v '^set default=' "$work_dir/boot/grub/grub.cfg" | grep -v '^set timeout='
+      cat "$work_dir/boot/grub/grub.cfg"
     } > "$grub_cfg_tmp"
     mv "$grub_cfg_tmp" "$work_dir/boot/grub/grub.cfg"
   fi
@@ -329,7 +340,9 @@ EOF
 # Usage: get_preseed_path <vm_name>
 get_preseed_path() {
   local vm_name="$1"
-  echo "${VMSWARM_IMAGE_DIR}/${vm_name}-preseed.cfg"
+  local dir="${VMSWARM_IMAGE_DIR}/${vm_name}"
+  mkdir -p "$dir"
+  echo "${dir}/preseed.cfg"
 }
 
 # Clean up preseed files
@@ -341,6 +354,7 @@ cleanup_preseed() {
   
   if [[ -f "$preseed_file" ]]; then
     rm -f "$preseed_file"
+    rmdir "$(dirname "$preseed_file")" 2>/dev/null || true
     log_info "Cleaned up preseed file: $preseed_file"
   fi
 }
