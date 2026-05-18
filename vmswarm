@@ -67,7 +67,13 @@ main() {
   else
     case "$cmd" in
       start|stop|kill|pause|resume|suspend)
-        run_parallel "$cmd" "$@"
+        local virsh_cmd="$cmd"
+        case "$cmd" in
+          stop) virsh_cmd="shutdown" ;;
+          kill) virsh_cmd="destroy" ;;
+          pause) virsh_cmd="suspend" ;;
+        esac
+        run_parallel "$virsh_cmd" "$@"
         ;;
       *)
         log_err $ERR_UNKNOWN_OPT "Unknown command: $cmd"
