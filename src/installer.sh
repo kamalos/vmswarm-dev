@@ -240,7 +240,7 @@ inject_preseed_into_iso() {
   # Update isolinux configuration if it exists (BIOS boot)
   if [[ -f "$work_dir/isolinux/isolinux.cfg" ]]; then
     # Add auto-install entry that uses preseed
-    cat >> "$work_dir/isolinux/isolinux.cfg" << 'BOOTCFG'
+    cat >> "$work_dir/isolinux/isolinux.cfg" << BOOTCFG
 
 LABEL autoinstall
   MENU LABEL Auto Install (Unattended)
