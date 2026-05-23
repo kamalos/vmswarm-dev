@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Mock virsh
+echo "Mock virsh called with: $@"
+cmd=$1
+shift
+
+case "$cmd" in
+  dominfo)
+    domain=$1
+    if [[ -f "$(dirname "$0")/domains/$domain" ]]; then
+      echo "Id:             -"
+      echo "Name:           $domain"
+      echo "State:          shut off"
+      exit 0
+    else
+      echo "error: failed to get domain '$domain'" >&2
+      exit 1
+    fi
+    ;;
+  domstate)
+    domain=$1
+    if [[ -f "$(dirname "$0")/domains/$domain" ]]; then
+      echo "shut off"
+      exit 0
+    else
+      echo "error: failed to get domain '$domain'" >&2
+      exit 1
+    fi
+    ;;
+  define)
+    xml_file=$1
+    domain=$(grep -oP '(?<=<name>)[^<]+' "$xml_file" || grep -o '<name>[^<]*' "$xml_file" | sed 's/<name>//')
+    # Clean whitespace and brackets if grep -o match had some leftover
+    domain=$(echo "$domain" | tr -d ' \r\n\t<>/')
+    mkdir -p "$(dirname "$0")/domains"
+    touch "$(dirname "$0")/domains/$domain"
+    exit 0
+    ;;
+  dumpxml)
+    domain=$1
+    if [[ -f "$(dirname "$0")/domains/$domain" ]]; then
+      echo "<domain><name>$domain</name><devices><interface type='network'><source network='default'/></interface></devices></domain>"
+      exit 0
+    else
+      exit 1
+    fi
+    ;;
+  setmaxmem|setmem|setvcpus)
+    exit 0
+    ;;
+  *)
+    exit 0
+    ;;
+esac

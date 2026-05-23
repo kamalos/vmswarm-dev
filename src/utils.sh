@@ -116,6 +116,17 @@ resolve_target() {
     name=$(registry_get_by_name "$target" | awk -F, '{print $2}')
     if [[ -n "$name" ]]; then
       resolved="$name"
+    else
+      # Check if there are duplicate VMs matching target-number
+      local duplicates
+      duplicates=$(awk -F, -v tgt="$target" 'NR>1 {
+        if ($2 == tgt || $2 ~ "^" tgt "-[0-9]+$") {
+          print $2
+        }
+      }' "$REGISTRY_FILE" | tr '\n' ' ')
+      if [[ -n "$duplicates" ]]; then
+        resolved="$duplicates"
+      fi
     fi
   fi
   

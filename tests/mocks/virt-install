@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Mock virt-install
+echo "Mock virt-install called with: $@"
+name=""
+while [[ $# -gt 0 ]]; do
+  if [[ "$1" == "--name" ]]; then
+    name="$2"
+    break
+  fi
+  shift
+done
+mkdir -p "$(dirname "$0")/domains"
+if [[ -n "$name" ]]; then
+  touch "$(dirname "$0")/domains/$name"
+fi
+echo "<domain><name>$name</name><devices><interface type='network'><source network='default'/></interface></devices></domain>"
+exit 0
