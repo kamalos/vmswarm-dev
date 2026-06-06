@@ -41,7 +41,7 @@ cmd_import() {
   
   local uuid; uuid=$(cat /proc/sys/kernel/random/uuid || echo "00000000-0000-0000-0000-000000000000")
   local ts; ts=$(date +%Y-%m-%d-%H-%M-%S)
-  registry_add "$target_name" "$uuid" "$VMSWARM_DEFAULT_RAM" "$VMSWARM_DEFAULT_CPUS" "$VMSWARM_DEFAULT_DISK" "$VMSWARM_DEFAULT_OS" "$VMSWARM_DEFAULT_NETWORK" "$tags" "$ts" "$VMSWARM_SSH_USER"
+  registry_add "$target_name" "$uuid" "$VMSWARM_DEFAULT_RAM" "$VMSWARM_DEFAULT_CPUS" "$VMSWARM_DEFAULT_DISK" "$VMSWARM_DEFAULT_OS" "$VMSWARM_DEFAULT_NETWORK" "$tags" "$ts" "$target_name"
   
   rm -rf "$tmp_dir"
   log_info "Imported VM as $target_name"

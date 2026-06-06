@@ -8,7 +8,7 @@ cmd_install() {
   shift
   local iso_override=""
   local install_hostname=""
-  local install_username="user"
+  local install_username=""
   local install_password=""
 
   if [[ -f "$SRC_DIR/installer.sh" ]]; then
@@ -72,6 +72,9 @@ cmd_install() {
 
     local host_for_domain
     host_for_domain="${install_hostname:-$domain}"
+    
+    local user_for_domain
+    user_for_domain="${install_username:-$domain}"
 
     local preseed_file
     local preseed_iso
@@ -87,7 +90,7 @@ cmd_install() {
     fi
 
     log_info "Generating preseed file for $domain..."
-    generate_preseed "$host_for_domain" "$install_username" "$install_password" "$disk_target" "$preseed_file"
+    generate_preseed "$host_for_domain" "$user_for_domain" "$install_password" "$disk_target" "$preseed_file"
     log_info "Injecting preseed into ISO for unattended installation..."
     inject_preseed_into_iso "$iso_path" "$preseed_file" "$preseed_iso"
 

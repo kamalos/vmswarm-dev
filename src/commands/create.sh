@@ -114,7 +114,7 @@ create_vm_instance() {
   else
     uuid="00000000-0000-0000-0000-000000000000"
   fi
-  registry_add "$name" "$uuid" "$ram" "$cpu" "$disk" "$os" "$network" "$tags" "$ts" "$VMSWARM_SSH_USER"
+  registry_add "$name" "$uuid" "$ram" "$cpu" "$disk" "$os" "$network" "$tags" "$ts" "$name"
   log_info "Created and defined VM $name (state: stopped)"
 }
 
