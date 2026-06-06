@@ -47,20 +47,21 @@ vmswarm [OPTIONS] COMMAND [TARGET] [ARGS]
 
 ### Execution Options
 
-- `-f` : Fork-based parallel execution (C binary)
-- `-t` : Thread-based parallel execution (C binary)
-- `-s` : Subshell execution (Bash)
-- `-n <count>` : Number of VMs for batch creation
-- `-l <dir>` : Set log directory (default: `/var/log/vmswarm`)
-- `-v` : Verbose output
-- `-r` : Restore config defaults (root only)
-- `-h` : Show short help message
+- `-f, --fork` : Fork-based parallel execution (C binary)
+- `-t, --thread` : Thread-based parallel execution (C binary)
+- `-s, --subshell` : Subshell execution (Bash)
+- `-n, --count <count>` : Number of VMs for batch creation
+- `-l, --log-dir <dir>` : Set log directory (default: `/var/log/vmswarm`)
+- `-v, --verbose` : Verbose output
+- `-r, --reset` : Restore config defaults (root only)
+- `-h, --help` : Show short help message
 
 ### Commands
 
 | Command | Description |
 |---|---|
 | `create` | Provision a new KVM VM (from ISO or qcow2). Prompts for missing parameters. |
+| `install` | Unattended OS install & start (injects preseed). |
 | `start` | Start VM(s). |
 | `stop` | Graceful shutdown of VM(s). |
 | `kill` | Force-off VM(s). |
@@ -79,6 +80,8 @@ vmswarm [OPTIONS] COMMAND [TARGET] [ARGS]
 | `net` | Manage libvirt networks (list/create/delete). |
 | `export` | Export VM to portable archive. |
 | `import` | Import VM from archive. |
+| `eject` | Eject CDROM/ISO from a VM. |
+| `inject-preseed` | Inject unattended preseed config into a base ISO. |
 | `logs` | Read and filter the vmswarm log file. |
 
 ### Target Syntax
@@ -98,6 +101,12 @@ You can apply commands to one or multiple VMs using various targeting syntaxes:
 Create 3 VMs based on a qcow2 image, tagging them as part of a cluster:
 ```bash
 vmswarm -s -n 3 create --name node --tag cluster --import base.qcow2
+```
+
+**Batch Creation from Config File**
+Create multiple VMs defined in a configuration file:
+```bash
+vmswarm create --config vms.conf
 ```
 
 **List VMs by Tag**
