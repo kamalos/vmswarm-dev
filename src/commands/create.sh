@@ -84,7 +84,7 @@ create_vm_instance() {
     virt-install --name "$name" --ram "$ram" --vcpus "$cpu" \
       --disk "$img_path",format=qcow2 --cdrom "$(realpath "$iso")" --os-variant "$os" \
       --network "network=$network" --noautoconsole --check disk_size=off \
-      --print-xml > "$xml_raw_tmp" || log_err 105 "Failed to generate VM definition for $name"
+      --boot hd,cdrom --print-xml > "$xml_raw_tmp" || log_err 105 "Failed to generate VM definition for $name"
   fi
 
   # Keep only the first domain XML block in case virt-install prints extra content.

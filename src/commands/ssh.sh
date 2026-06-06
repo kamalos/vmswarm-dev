@@ -4,11 +4,17 @@ cmd_ssh() {
   local target=$1
   shift
   
+  local ssh_user_override=""
   local extra_args=()
-  if [[ "${1:-}" == "--" ]]; then
-    shift
-    extra_args=("$@")
-  fi
+  
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --user) ssh_user_override="$2"; shift 2 ;;
+      --) shift; extra_args=("$@"); break ;;
+      -*) log_err $ERR_UNKNOWN_OPT "Unknown option: $1" ;;
+      *) break ;;
+    esac
+  done
   
   local resolved
   resolved=$(resolve_target "$target")
@@ -19,8 +25,10 @@ cmd_ssh() {
     if [[ -z "$ip" ]]; then
       log_err $ERR_SSH_FAILED "Could not resolve IP for $domain"
     fi
-    local ssh_user
-    ssh_user=$(registry_get_by_name "$domain" | awk -F, '{print $11}')
+    local ssh_user="$ssh_user_override"
+    if [[ -z "$ssh_user" ]]; then
+      ssh_user=$(registry_get_by_name "$domain" | awk -F, '{print $11}')
+    fi
     if [[ -z "$ssh_user" ]]; then ssh_user="$VMSWARM_SSH_USER"; fi
     
     echo "--- SSH into $domain ($ip) ---"

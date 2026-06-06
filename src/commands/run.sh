@@ -8,11 +8,13 @@ cmd_run() {
   shift
   local script_file=""
   local args=""
+  local ssh_user_override=""
   
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --script) script_file="$2"; shift 2 ;;
       --args) args="$2"; shift 2 ;;
+      --user) ssh_user_override="$2"; shift 2 ;;
       *) log_err $ERR_UNKNOWN_OPT "Unknown option to run: $1" ;;
     esac
   done
@@ -46,8 +48,10 @@ cmd_run() {
       log_info "Could not resolve IP for $domain, skipping."
       continue
     fi
-    local ssh_user
-    ssh_user=$(registry_get_by_name "$domain" | awk -F, '{print $11}')
+    local ssh_user="$ssh_user_override"
+    if [[ -z "$ssh_user" ]]; then
+      ssh_user=$(registry_get_by_name "$domain" | awk -F, '{print $11}')
+    fi
     if [[ -z "$ssh_user" ]]; then ssh_user="$VMSWARM_SSH_USER"; fi
     
     local r_cmd="scp -q $(realpath "$script_file") $ssh_user@$ip:/tmp/vmswarm_run.sh && ssh -q $ssh_user@$ip \"bash /tmp/vmswarm_run.sh $args\" | awk -v prefix=\"[$domain]: \" '{print prefix \$0}'"
