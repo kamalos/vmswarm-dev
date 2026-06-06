@@ -4,26 +4,18 @@ show_help() {
   cat << 'EOF'
 vmswarm — KVM/libvirt VM orchestration framework
 
-USAGE
-  vmswarm [OPTIONS] COMMAND [ARGS]
+USAGE: vmswarm [OPTIONS] COMMAND [ARGS]
 
-ESSENTIAL COMMANDS
-  create <name>     Define a new VM (stopped state)
+IMPORTANT COMMANDS:
+  create <name>     Define a new VM
   install <vm>      Unattended install & start
   run <vm>          Start VM(s)
-  show <vm>         Open GUI console
-  eject <vm>        Eject CD-ROM (unplug ISO)
   ps                List all VMs
 
-OPTIONS
-  -h                This help
-  -n <count>        Batch create count
-
-EXAMPLES
-  vmswarm create --name mint --iso linux-mint.iso
-  vmswarm install mint --hostname myhost --username user
-  vmswarm ps
-  vmswarm show mint
+IMPORTANT OPTIONS:
+  -h, --help        Show this help
+  -n, --count <n>   Batch create count
+  -v, --verbose     Verbose output
 
 See 'man vmswarm' for full documentation.
 EOF

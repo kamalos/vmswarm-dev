@@ -27,26 +27,26 @@ fi
 main() {
   local OPT_LOG_DIR=""
   
-  while getopts "hftsl:rn:v" opt; do
-    case "$opt" in
-      h) show_help; exit 0 ;;
-      f) EXEC_MODE="fork" ;;
-      t) EXEC_MODE="thread" ;;
-      s) EXEC_MODE="subshell" ;;
-      l) OPT_LOG_DIR="$OPTARG" ;;
-      n) NUM_VMS="$OPTARG" ;;
-      v) VERBOSE=1 ;;
-      r) 
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help) show_help; exit 0 ;;
+      -f|--fork) EXEC_MODE="fork"; shift ;;
+      -t|--thread) EXEC_MODE="thread"; shift ;;
+      -s|--subshell) EXEC_MODE="subshell"; shift ;;
+      -l|--log-dir) OPT_LOG_DIR="$2"; shift 2 ;;
+      -n|--count) NUM_VMS="$2"; shift 2 ;;
+      -v|--verbose) VERBOSE=1; shift ;;
+      -r|--reset) 
         if [[ -f "$SRC_DIR/commands/defaults.sh" ]]; then
           source "$SRC_DIR/commands/defaults.sh"
           restore_defaults
         fi
         exit 0 
         ;;
-      *) log_err $ERR_UNKNOWN_OPT "Unknown option: -$OPTARG" ;;
+      -*) log_err $ERR_UNKNOWN_OPT "Unknown option: $1" ;;
+      *) break ;;
     esac
   done
-  shift $((OPTIND -1))
   
   if [[ $# -eq 0 ]]; then
     show_help
