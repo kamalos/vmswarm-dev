@@ -73,7 +73,7 @@ vmswarm [OPTIONS] COMMAND [TARGET] [ARGS]
 | `info` | Detailed info for VM(s). |
 | `gui` | Open graphical console for VM(s) using virt-manager. |
 | `ssh` | SSH into VM(s). |
-| `run` | Execute a local script on VM(s) via SSH. |
+| `run` | Execute a local script or inline `--cmd` on VM(s) via SSH. |
 | `clone` | Clone an existing VM. |
 | `tag` | Add/remove/list tags. |
 | `snap` | Manage snapshots (take/list/restore/delete). |

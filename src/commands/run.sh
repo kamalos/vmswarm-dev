@@ -7,12 +7,14 @@ cmd_run() {
   local target=$1
   shift
   local script_file=""
+  local inline_cmd=""
   local args=""
   local ssh_user_override=""
   
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --script) script_file="$2"; shift 2 ;;
+      --cmd) inline_cmd="$2"; shift 2 ;;
       --args) args="$2"; shift 2 ;;
       --user) ssh_user_override="$2"; shift 2 ;;
       *) log_err $ERR_UNKNOWN_OPT "Unknown option to run: $1" ;;
@@ -22,8 +24,8 @@ cmd_run() {
   local resolved
   resolved=$(resolve_target "$target")
 
-  # Start VM(s) headlessly when no script is provided.
-  if [[ -z "$script_file" ]]; then
+  # Start VM(s) headlessly when neither script nor command is provided.
+  if [[ -z "$script_file" ]] && [[ -z "$inline_cmd" ]]; then
     local cmds=()
     for domain in $resolved; do
       local state
@@ -38,7 +40,7 @@ cmd_run() {
     return 0
   fi
 
-  if [[ ! -f "$script_file" ]]; then log_err $ERR_SCRIPT_NOT_FOUND "Script not found: $script_file"; fi
+  if [[ -n "$script_file" ]] && [[ ! -f "$script_file" ]]; then log_err $ERR_SCRIPT_NOT_FOUND "Script not found: $script_file"; fi
   
   local cmds=()
   for domain in $resolved; do
@@ -54,7 +56,12 @@ cmd_run() {
     fi
     if [[ -z "$ssh_user" ]]; then ssh_user="$VMSWARM_SSH_USER"; fi
     
-    local r_cmd="scp -q $(realpath "$script_file") $ssh_user@$ip:/tmp/vmswarm_run.sh && ssh -q $ssh_user@$ip \"bash /tmp/vmswarm_run.sh $args\" | awk -v prefix=\"[$domain]: \" '{print prefix \$0}'"
+    local r_cmd
+    if [[ -n "$inline_cmd" ]]; then
+      r_cmd="ssh -q $ssh_user@$ip \"$inline_cmd\" | awk -v prefix=\"[$domain]: \" '{print prefix \$0}'"
+    else
+      r_cmd="scp -q $(realpath "$script_file") $ssh_user@$ip:/tmp/vmswarm_run.sh && ssh -q $ssh_user@$ip \"bash /tmp/vmswarm_run.sh $args\" | awk -v prefix=\"[$domain]: \" '{print prefix \$0}'"
+    fi
     cmds+=("$r_cmd")
   done
   
