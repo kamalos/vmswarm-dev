@@ -79,13 +79,11 @@ d-i clock-setup/ntp boolean true
 d-i clock-setup/ntp-server string ntp.ubuntu.com
 
 # Disk partitioning
-d-i partman-auto/disk string /dev/vda
-d-i partman-auto/method string lvm
+d-i partman/early_command string \
+  debconf-set partman-auto/disk "$(list-devices disk | head -n1)"
+d-i partman-auto/method string regular
 d-i partman-lvm/device_remove_lvm boolean true
 d-i partman-md/device_remove_md boolean true
-d-i partman-lvm/confirm boolean true
-d-i partman-lvm/confirm_nooverwrite boolean true
-d-i partman-auto-lvm/guided_size string max
 d-i partman-auto/choose_recipe select atomic
 d-i partman-partitioning/confirm_write_new_label boolean true
 d-i partman/choose_partition select finish
