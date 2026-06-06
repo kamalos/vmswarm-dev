@@ -79,6 +79,7 @@ d-i clock-setup/ntp boolean true
 d-i clock-setup/ntp-server string ntp.ubuntu.com
 
 # Disk partitioning
+d-i partman-auto/disk string /dev/vda
 d-i partman-auto/method string lvm
 d-i partman-lvm/device_remove_lvm boolean true
 d-i partman-md/device_remove_md boolean true
