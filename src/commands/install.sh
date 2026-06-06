@@ -80,8 +80,14 @@ cmd_install() {
     base_iso_name=$(basename "$iso_path" .iso)
     preseed_iso="${VMSWARM_IMAGE_DIR}/${base_iso_name}-${domain}-preseed.iso"
 
+    local disk_target
+    disk_target=$(virsh domblklist "$domain" --details 2>/dev/null | awk '$2 == "disk" { print "/dev/" $3; exit }')
+    if [[ -z "$disk_target" ]]; then
+      disk_target="/dev/vda"
+    fi
+
     log_info "Generating preseed file for $domain..."
-    generate_preseed "$host_for_domain" "$install_username" "$install_password" "$preseed_file"
+    generate_preseed "$host_for_domain" "$install_username" "$install_password" "$disk_target" "$preseed_file"
     log_info "Injecting preseed into ISO for unattended installation..."
     inject_preseed_into_iso "$iso_path" "$preseed_file" "$preseed_iso"
 

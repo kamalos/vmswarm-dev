@@ -26,12 +26,13 @@ detect_host_layout() {
 }
 
 # Generate preseed file for unattended Debian/Linux Mint installation
-# Usage: generate_preseed <hostname> <username> <password> <output_file>
+# Usage: generate_preseed <hostname> <username> <password> <disk_target> <output_file>
 generate_preseed() {
   local hostname="$1"
   local username="$2"
   local password="$3"
-  local output_file="$4"
+  local disk_target="$4"
+  local output_file="$5"
   
   # Hash the password using mkpasswd (install if needed)
   if ! command -v mkpasswd >/dev/null 2>&1; then
@@ -79,9 +80,10 @@ d-i clock-setup/ntp boolean true
 d-i clock-setup/ntp-server string ntp.ubuntu.com
 
 # Disk partitioning
-d-i partman/early_command string \
-  debconf-set partman-auto/disk "$(list-devices disk | head -n1)"
+d-i partman-auto/disk string $disk_target
+ubiquity partman-auto/disk string $disk_target
 d-i partman-auto/method string regular
+ubiquity partman-auto/method string regular
 d-i partman-lvm/device_remove_lvm boolean true
 d-i partman-md/device_remove_md boolean true
 d-i partman-auto/choose_recipe select atomic
@@ -89,6 +91,10 @@ d-i partman-partitioning/confirm_write_new_label boolean true
 d-i partman/choose_partition select finish
 d-i partman/confirm boolean true
 d-i partman/confirm_nooverwrite boolean true
+ubiquity partman-partitioning/confirm_write_new_label boolean true
+ubiquity partman/choose_partition select finish
+ubiquity partman/confirm boolean true
+ubiquity partman/confirm_nooverwrite boolean true
 
 # Apt setup
 d-i apt-setup/restricted boolean true
