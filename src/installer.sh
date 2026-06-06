@@ -128,6 +128,7 @@ ubiquity ubiquity/poweroff boolean false
 ubiquity ubiquity/install/new_hostname string $hostname
 ubiquity ubiquity/install/new_username string $username
 ubiquity ubiquity/install/new_password-crypted string $password_hash
+ubiquity ubiquity/use_nonfree boolean true
 
 # Additional settings for unattended installation
 d-i preseeding/early_command string \
