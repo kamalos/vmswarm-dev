@@ -8,28 +8,28 @@ vmswarm \- KVM/libvirt VM orchestration framework
 VMSwarm is a bash-first CLI tool to spin up, manage, and orchestrate multiple KVM virtual machines using libvirt/virsh. Supports parallel execution via subshell, fork (C), or threads (C).
 .SH OPTIONS
 .TP
-.BR \-h
+.BR \-h ", " \-\-help
 Show short help message.
 .TP
-.BR \-f
+.BR \-f ", " \-\-fork
 Fork-based parallel execution (C binary).
 .TP
-.BR \-t
+.BR \-t ", " \-\-thread
 Thread-based parallel execution (C binary).
 .TP
-.BR \-s
+.BR \-s ", " \-\-subshell
 Subshell execution.
 .TP
-.BR \-l " " \fIdir\fR
+.BR \-l ", " \-\-log\-dir " " \fIdir\fR
 Set log directory (default: /var/log/vmswarm).
 .TP
-.BR \-r
+.BR \-r ", " \-\-reset
 Restore config defaults (root only).
 .TP
-.BR \-v
+.BR \-v ", " \-\-verbose
 Verbose output.
 .TP
-.BR \-n " " \fIcount\fR
+.BR \-n ", " \-\-count " " \fIcount\fR
 Number of VMs for batch create.
 .SH COMMANDS
 .TP
@@ -39,7 +39,12 @@ Provision a new KVM VM (from ISO or qcow2 import). Prompts for missing parameter
 .B install
 Run unattended Linux installation for a VM with preseed configuration.
 Options: --iso, --hostname, --username, --password.
-
+.TP
+.B eject
+Eject CD-ROM (unplug ISO) from VM(s).
+.TP
+.B inject-preseed
+Inject a preseed file into an initrd image.
 .TP
 .B start
 Start VM(s).

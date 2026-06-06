@@ -6,16 +6,35 @@ vmswarm — KVM/libvirt VM orchestration framework
 
 USAGE: vmswarm [OPTIONS] COMMAND [ARGS]
 
-IMPORTANT COMMANDS:
-  create <name>     Define a new VM
-  install <vm>      Unattended install & start
-  run <vm>          Start VM(s)
-  ps                List all VMs
+COMMANDS:
+  create            Define a new VM
+  install           Unattended install & start
+  start|stop|kill   Manage VM power state
+  pause|resume      Manage VM execution state
+  ps                List VMs
+  info              Show VM details
+  show              Open GUI console
+  clone             Clone VM
+  delete            Remove VM
+  ssh               SSH into VM
+  run               Execute local script on VM(s)
+  snap              Manage snapshots
+  tag               Manage tags
+  net               Manage libvirt networks
+  export|import     Archive VMs
+  eject             Eject CD-ROM
+  inject-preseed    Inject preseed into initrd
+  logs              View logs
 
-IMPORTANT OPTIONS:
+OPTIONS:
   -h, --help        Show this help
-  -n, --count <n>   Batch create count
+  -f, --fork        Fork-based parallel execution (C)
+  -t, --thread      Thread-based parallel execution (C)
+  -s, --subshell    Subshell parallel execution
+  -l, --log-dir <d> Set log directory
+  -r, --reset       Restore config defaults
   -v, --verbose     Verbose output
+  -n, --count <n>   Batch create count
 
 See 'man vmswarm' for full documentation.
 EOF
